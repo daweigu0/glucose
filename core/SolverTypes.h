@@ -86,11 +86,34 @@ struct Lit {
     bool operator <  (Lit p) const { return x < p.x;  } // '<' makes p, ~p adjacent in the ordering.
 };
 
-
+/**
+ * @brief 构造一个Lit
+ * 注意：
+ * 1. 正文字的Lit的值是var的两倍
+ * 2. 负文字的Lit的值是var的两倍+1
+ * @param var cnf读入的文字的编号的绝对值减1
+ * @param sign 正文字为false，负文字为true，该参数有默认值，其默认值为false
+ * @return Lit 
+ */
 inline  Lit  mkLit     (Var var, bool sign = false) { Lit p; p.x = var + var + (int)sign; return p; }
 inline  Lit  operator ~(Lit p)              { Lit q; q.x = p.x ^ 1; return q; }
 inline  Lit  operator ^(Lit p, bool b)      { Lit q; q.x = p.x ^ (unsigned int)b; return q; }
+/**
+ * @brief 正文字返回false，负文字返回true
+ * 
+ * @param p 
+ * @return true 
+ * @return false 
+ */
 inline  bool sign      (Lit p)              { return p.x & 1; }
+/**
+ * @brief 返回文字对应的变元编号
+ * 注意：
+ * 1. 正文字是变元编号的两倍
+ * 2. 负文字是变元编号的两倍+1
+ * @param p 
+ * @return int 
+ */
 inline  int  var       (Lit p)              { return p.x >> 1; }
 
 // Mapping Literals to and from compact integers suitable for array indexing:

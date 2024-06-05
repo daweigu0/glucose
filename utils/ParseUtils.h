@@ -107,7 +107,13 @@ static double parseDouble(B& in) { // only in the form X.XXXXXe-XX
 	return neg ? -accu:accu;
 }
 
-
+/**
+ * @brief 从输入流中解析一个整数，如果读取到一个非数字的字符，会结束程序
+ * 
+ * @tparam B 
+ * @param in 
+ * @return int 
+ */
 template<class B>
 static int parseInt(B& in) {
     int     val = 0;

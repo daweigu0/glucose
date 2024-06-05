@@ -231,6 +231,7 @@ int main(int argc, char** argv)
         S.parsing = 0;
         if(pre/* && !S.isIncremental()*/) {
 	  printf("c | Preprocesing is fully done\n");
+      //上面是cnf的读入以及预处理
 	  S.eliminate(true);
         double simplified_time = cpuTime();
         if (S.verbosity > 0){

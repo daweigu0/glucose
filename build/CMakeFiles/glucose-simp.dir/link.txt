@@ -1,0 +1,1 @@
+/usr/bin/g++  -std=c++11  -O0 -Wall -g2 -ggdb  -rdynamic CMakeFiles/glucose-simp.dir/simp/Main.cc.o  -o glucose-simp  -lz libglucose.a -lz 

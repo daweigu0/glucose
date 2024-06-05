@@ -2,10 +2,13 @@ cmake_minimum_required(VERSION 2.6)
 
 project(glucose)
 
+
 option(BUILD_SHARED_LIBS OFF "True for building shared object")
 
 set(CMAKE_CXX_FLAGS "-std=c++11")
-
+SET(CMAKE_BUILD_TYPE "Debug")  
+SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb")  
+SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")  
 # Dependencies {{{
 find_package(ZLIB REQUIRED)
 find_package(Threads REQUIRED)
