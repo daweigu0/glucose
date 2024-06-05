@@ -229,7 +229,9 @@ inline bool SimpSolver::solve        (const vec<Lit>& assumps, bool do_simp, boo
     budgetOff(); assumps.copyTo(assumptions); return solve_(do_simp, turn_off_simp) == l_True; }
 
 inline lbool SimpSolver::solveLimited (const vec<Lit>& assumps, bool do_simp, bool turn_off_simp){ 
-    assumps.copyTo(assumptions); return solve_(do_simp, turn_off_simp); }
+    assumps.copyTo(assumptions); 
+    return solve_(do_simp, turn_off_simp); 
+    }
 
 //=================================================================================================
 }

@@ -289,7 +289,19 @@ protected:
     bool forceUnsatOnNewDescent;
     // Helper structures:
     //
+    /**
+     * @brief 该结构体用于存储变元的原因子句和决策层次
+     * 注意：
+     * - 原因子句是指导致变元取值的子句
+     */
     struct VarData { CRef reason; int level; };
+    /**
+     * @brief 返回一个VarData结构体
+     * 
+     * @param cr 导致变元取值的子句，即原因子句
+     * @param l 变元所处的决策层次
+     * @return VarData 
+     */
     static inline VarData mkVarData(CRef cr, int l){ VarData d = {cr, l}; return d; }
 
     struct Watcher {
@@ -552,16 +564,33 @@ inline bool     Solver::addClause       (Lit p, Lit q, Lit r)   { add_tmp.clear(
      (value(c[1]) == l_True && reason(var(c[1])) != CRef_Undef && ca.lea(reason(var(c[1]))) == &c);
  }
 inline void     Solver::newDecisionLevel()                      { trail_lim.push(trail.size()); }
-
+/**
+ * @brief 返回当前是第几决策层
+ * 
+ * @return int 
+ */
 inline int      Solver::decisionLevel ()      const   { return trail_lim.size(); }
 inline uint32_t Solver::abstractLevel (Var x) const   { return 1 << (level(x) & 31); }
 inline lbool    Solver::value         (Var x) const   { return assigns[x]; }
-inline lbool    Solver::value         (Lit p) const   { return assigns[var(p)] ^ sign(p); }
+/**
+ * @brief 判断变元当前的赋值与文字的极性是否相同，相同返回l_True，不同返回l_False;
+ * 如果当前变元未赋值，返回l_bool(uint8_t(3))或者l_bool(uint8_t(2))
+ * 注意：
+ * l_bool(uint8_t(3)) == l_Undef, l_bool(uint8_t(2)) == l_Undef的结果都是true
+ * @param p 
+ * @return lbool 
+ */
+inline lbool    Solver::value         (Lit p) const   { return assigns[var(p)] ^ sign(p); }//与0异或是本身，与1异或是最低位取反
 inline lbool    Solver::modelValue    (Var x) const   { return model[x]; }
 inline lbool    Solver::modelValue    (Lit p) const   { return model[var(p)] ^ sign(p); }
 inline int      Solver::nAssigns      ()      const   { return trail.size(); }
 inline int      Solver::nClauses      ()      const   { return clauses.size(); }
 inline int      Solver::nLearnts      ()      const   { return learnts.size(); }
+/**
+ * @brief 返回vardata的size
+ * 
+ * @return int 
+ */
 inline int      Solver::nVars         ()      const   { return vardata.size(); }
 inline int      Solver::nFreeVars     ()         {
     int a = stats[dec_vars];

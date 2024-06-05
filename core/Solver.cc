@@ -448,7 +448,6 @@ bool Solver::addClause_(vec <Lit> &ps) {
         CRef cr = ca.alloc(ps, false);
         clauses.push(cr);
         attachClause(cr);
-
     }
 
     return true;
@@ -993,10 +992,10 @@ CRef Solver::propagate() {
 
             Lit imp = wbin[k].blocker;
 
-            if(value(imp) == l_False) {
+            if(value(imp) == l_False) {//冲突
                 return wbin[k].cref;
             }
-
+            
             if(value(imp) == l_Undef) {
                 uncheckedEnqueue(imp, wbin[k].cref);
             }
@@ -1054,7 +1053,7 @@ CRef Solver::propagate() {
             goto NextClause; }
             } else {  // ----------------- DEFAULT  MODE (NOT INCREMENTAL)
 #endif
-            for(int k = 2; k < c.size(); k++) {
+            for(int k = 2; k < c.size(); k++) {//更新监督的文字
 
                 if(value(c[k]) != l_False) {
                     c[1] = c[k];
@@ -1611,7 +1610,7 @@ lbool Solver::search(int nof_conflicts) {
                 }
             }
 
-            if(next == lit_Undef) {
+            if(next == lit_Undef) {//挑选下一层决策变元
                 // New variable decision:
                 decisions++;
                 next = pickBranchLit();

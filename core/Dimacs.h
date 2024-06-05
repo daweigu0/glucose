@@ -37,9 +37,10 @@ static void readClause(B& in, Solver& S, vec<Lit>& lits) {
     lits.clear();
     for (;;){
         parsed_lit = parseInt(in);
-        if (parsed_lit == 0) break;
+        if (parsed_lit == 0) break;//cnf中的子句以0结尾
         var = abs(parsed_lit)-1;
-        while (var >= S.nVars()) S.newVar();
+        while (var >= S.nVars()) 
+            S.newVar();
         lits.push( (parsed_lit > 0) ? mkLit(var) : ~mkLit(var) );
     }
 }
@@ -47,8 +48,8 @@ static void readClause(B& in, Solver& S, vec<Lit>& lits) {
 template<class B, class Solver>
 static void parse_DIMACS_main(B& in, Solver& S) {
     vec<Lit> lits;
-    int vars    = 0;
-    int clauses = 0;
+    int vars    = 0;//变元的数量
+    int clauses = 0;//子句的数量
     int cnt     = 0;
     for (;;){
         skipWhitespace(in);

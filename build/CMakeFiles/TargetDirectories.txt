@@ -1,0 +1,6 @@
+/workspaces/glucose/build/CMakeFiles/rebuild_cache.dir
+/workspaces/glucose/build/CMakeFiles/glucose-syrup.dir
+/workspaces/glucose/build/CMakeFiles/edit_cache.dir
+/workspaces/glucose/build/CMakeFiles/glucosep.dir
+/workspaces/glucose/build/CMakeFiles/glucose-simp.dir
+/workspaces/glucose/build/CMakeFiles/glucose.dir
