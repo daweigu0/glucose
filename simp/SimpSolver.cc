@@ -397,7 +397,7 @@ void SimpSolver::gatherTouchedClauses()
 
 bool SimpSolver::implied(const vec<Lit>& c)
 {
-    assert(decisionLevel() == 0);
+    assert(decisionLevel() == 0);//如果此处不等会报错
 
     trail_lim.push(trail.size());
     for (int i = 0; i < c.size(); i++)

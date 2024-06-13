@@ -96,6 +96,12 @@ struct Lit {
  * @return Lit 
  */
 inline  Lit  mkLit     (Var var, bool sign = false) { Lit p; p.x = var + var + (int)sign; return p; }
+/**
+ * @brief 对Lit的~运算符重载
+ * 
+ * @param p 
+ * @return Lit p的反文字。如：p参数是正文字，返回的是其负文字。
+ */
 inline  Lit  operator ~(Lit p)              { Lit q; q.x = p.x ^ 1; return q; }
 inline  Lit  operator ^(Lit p, bool b)      { Lit q; q.x = p.x ^ (unsigned int)b; return q; }
 /**
@@ -147,6 +153,7 @@ public:
     explicit lbool(uint8_t v) : value(v) { }
 
     lbool()       : value(0) { }
+    
     explicit lbool(bool x) : value(!x) { }
 
     bool  operator == (lbool b) const { return ((b.value&2) & (value&2)) | (!(b.value&2)&(value == b.value)); }
@@ -183,8 +190,8 @@ typedef RegionAllocator<uint32_t>::Ref CRef;
 class Clause {
     struct {
       unsigned mark       : 2;
-      unsigned learnt     : 1;
       unsigned canbedel   : 1;
+      unsigned learnt     : 1;
       unsigned extra_size : 2; // extra size (end of 32bits) 0..3       
       unsigned seen       : 1;
       unsigned reloced    : 1;
@@ -208,31 +215,31 @@ class Clause {
     // NOTE: This constructor cannot be used directly (doesn't allocate enough memory).
     template<class V>
     Clause(const V& ps, int _extra_size, bool learnt) {
-	assert(_extra_size < 3);
+	    assert(_extra_size < 3);
         header.mark      = 0;
         header.learnt    = learnt;
         header.extra_size = _extra_size;
-            header.reloced   = 0;
-        header.size      = ps.size();
-	header.lbd = 0;
-	header.canbedel = 1;
-	header.exported = 0; 
-	header.oneWatched = 0;
-    header.simplified = 0;
+        header.reloced    = 0;
+        header.size       = ps.size();
+        header.lbd        = 0;
+        header.canbedel = 1;
+        header.exported = 0; 
+        header.oneWatched = 0;
+        header.simplified = 0;
 
         header.seen = 0;
         for (int i = 0; i < ps.size(); i++) 
             data[i].lit = ps[i];
 	
         if (header.extra_size > 0){
-	  if (header.learnt) 
+            if (header.learnt) 
                 data[header.size].act = 0; 
             else 
                 calcAbstraction();
-	  if (header.extra_size > 1) {
-	      data[header.size+1].abs = 0; // learntFrom
-	  }	      
-	}
+            if (header.extra_size > 1) {
+                data[header.size+1].abs = 0; // learntFrom
+            }	      
+	    }
     }
 
 public:
@@ -253,7 +260,17 @@ public:
 						}
     header.size -= i; }
     void         pop         ()              { shrink(1); }
+    /**
+     * @brief 判断该子句是否是学习子句
+     * 
+     * @return true 是
+     * @return false 不是
+     */
     bool         learnt      ()      const   { return header.learnt; }
+    /**
+     * @brief 将子句中学习子句的标识设置为false。
+     * 
+     */
     void         nolearnt    ()              { header.learnt = false;}
     bool         has_extra   ()      const   { return header.extra_size > 0; }
     uint32_t     mark        ()      const   { return header.mark; }
@@ -285,7 +302,18 @@ public:
     unsigned int        lbd    () const        { return header.lbd; }
     void setCanBeDel(bool b) {header.canbedel = b;}
     bool canBeDel() {return header.canbedel;}
+    /**
+     * @brief 标记子句是否被访问过
+     * 
+     * @param b 
+     */
     void setSeen(bool b) {header.seen = b;}
+    /**
+     * @brief 返回子句是否被访问过
+     * 
+     * @return true 已经访问过
+     * @return false 没有访问过
+     */
     bool getSeen() {return header.seen;}
     void setExported(unsigned int b) {header.exported = b;}
     unsigned int getExported() {return header.exported;}

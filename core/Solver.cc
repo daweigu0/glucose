@@ -427,10 +427,10 @@ bool Solver::addClause_(vec <Lit> &ps) {
     }
 
     for(i = j = 0, p = lit_Undef; i < ps.size(); i++)
-        if(value(ps[i]) == l_True || ps[i] == ~p)
+        if(value(ps[i]) == l_True || ps[i] == ~p)//如果该子句已经满足或者为重言式，则略过该子句
             return true;
-        else if(value(ps[i]) != l_False && ps[i] != p)
-            ps[j++] = p = ps[i];
+        else if(value(ps[i]) != l_False && ps[i] != p)//去除数组中重复的元素思想跟下面这道力扣题一样
+            ps[j++] = p = ps[i];                      //https://leetcode.cn/problems/remove-element/description/
     ps.shrink(i - j);
 
     if(flag && (certifiedUNSAT)) {
@@ -441,19 +441,23 @@ bool Solver::addClause_(vec <Lit> &ps) {
 
     if(ps.size() == 0)
         return ok = false;
-    else if(ps.size() == 1) {
+    else if(ps.size() == 1) {//基于目前已经读取进来的算例进行单子句传播
         uncheckedEnqueue(ps[0]);
-        return ok = (propagate() == CRef_Undef);
+        return ok = (propagate() == CRef_Undef);//如果产生冲突相当于在第0决策层产生冲突，该算例为UNSAT
     } else {
         CRef cr = ca.alloc(ps, false);
         clauses.push(cr);
-        attachClause(cr);
+        attachClause(cr);//对长度大于1的子句进行两文字监督
     }
 
     return true;
 }
 
-
+/**
+ * @brief 对子句进行两文字监督
+ * 
+ * @param cr 
+ */
 void Solver::attachClause(CRef cr) {
     const Clause &c = ca[cr];
 
@@ -465,8 +469,8 @@ void Solver::attachClause(CRef cr) {
         watches[~c[0]].push(Watcher(cr, c[1]));
         watches[~c[1]].push(Watcher(cr, c[0]));
     }
-    if(c.learnt()) stats[learnts_literals] += c.size();
-    else stats[clauses_literals] += c.size();
+    if(c.learnt()) stats[learnts_literals] += c.size();//?
+    else stats[clauses_literals] += c.size();//?
 }
 
 
@@ -600,13 +604,17 @@ void Solver::minimisationWithBinaryResolution(vec <Lit> &out_learnt) {
 
 // Revert to the state at given level (keeping all assignment at 'level' but not beyond).
 //
-
+/**
+ * @brief 将迹中决策层次>=level的所有变元的赋值全部取消
+ * 
+ * @param level 
+ */
 void Solver::cancelUntil(int level) {
     if(decisionLevel() > level) {
         for(int c = trail.size() - 1; c >= trail_lim[level]; c--) {
             Var x = var(trail[c]);
             assigns[x] = l_Undef;
-            if(phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last())) {
+            if(phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last())) {//?||后的条件需要进一步理解
                 polarity[x] = sign(trail[c]);
             }
             insertVarOrder(x);
@@ -661,23 +669,31 @@ Lit Solver::pickBranchLit() {
 }
 
 
-/*_________________________________________________________________________________________________
-|
-|  analyze : (confl : Clause*) (out_learnt : vec<Lit>&) (out_btlevel : int&)  ->  [void]
-|
-|  Description:
-|    Analyze conflict and produce a reason clause.
-|
-|    Pre-conditions:
-|      * 'out_learnt' is assumed to be cleared.
-|      * Current decision level must be greater than root level.
-|
-|    Post-conditions:
-|      * 'out_learnt[0]' is the asserting literal at level 'out_btlevel'.
-|      * If out_learnt.size() > 1 then 'out_learnt[1]' has the greatest decision level of the
-|        rest of literals. There may be others from the same level though.
-|
-|________________________________________________________________________________________________@*/
+/**
+ * @brief 冲突分析
+ * @details
+ * |_________________________________________________________________________________________________
+ * |  analyze : (confl : Clause*) (out_learnt : vec<Lit>&) (out_btlevel : int&)  ->  [void]
+ * |
+ * |  Description:
+ * |    Analyze conflict and produce a reason clause.
+ * |
+ * |    Pre-conditions:
+ * |      * 'out_learnt' is assumed to be cleared.
+ * |      * Current decision level must be greater than root level.
+ * |
+ * |    Post-conditions:
+ * |      * 'out_learnt[0]' is the asserting literal at level 'out_btlevel'.
+ * |      * If out_learnt.size() > 1 then 'out_learnt[1]' has the greatest decision level of the
+ * |        rest of literals. There may be others from the same level though.
+ * |________________________________________________________________________________________________
+ * @param confl 冲突子句
+ * @param out_learnt 冲突分析到的学习子句
+ * @param selectors 
+ * @param out_btlevel 需要回溯到的决策层数
+ * @param lbd 学习子句的lbd值
+ * @param szWithoutSelectors 
+ */
 void Solver::analyze(CRef confl, vec <Lit> &out_learnt, vec <Lit> &selectors, int &out_btlevel, unsigned int &lbd, unsigned int &szWithoutSelectors) {
     int pathC = 0;
     Lit p = lit_Undef;
@@ -689,7 +705,7 @@ void Solver::analyze(CRef confl, vec <Lit> &out_learnt, vec <Lit> &selectors, in
     int index = trail.size() - 1;
     do {
         assert(confl != CRef_Undef); // (otherwise should be UIP)
-        Clause &c = ca[confl];
+        Clause &c = ca[confl];//冲突子句
         // Special case for binary clauses
         // The first one has to be SAT
         if(p != lit_Undef && c.size() == 2 && value(c[0]) == l_False) {
@@ -700,8 +716,8 @@ void Solver::analyze(CRef confl, vec <Lit> &out_learnt, vec <Lit> &selectors, in
         }
 
         if(c.learnt()) {
-            parallelImportClauseDuringConflictAnalysis(c, confl);
-            claBumpActivity(c);
+            parallelImportClauseDuringConflictAnalysis(c, confl);//空函数
+            claBumpActivity(c);//更新冲突子句的activity值
         } else { // original clause
             if(!c.getSeen()) {
                 stats[originalClausesSeen]++;
@@ -710,7 +726,7 @@ void Solver::analyze(CRef confl, vec <Lit> &out_learnt, vec <Lit> &selectors, in
         }
 
         // DYNAMIC NBLEVEL trick (see competition'09 companion paper)
-        if(c.learnt() && c.lbd() > 2) {
+        if(c.learnt() && c.lbd() > 2) {//如果冲突子句是学习子句并且它的lbd值>2就动态更新
             unsigned int nblevels = computeLBD(c);
             if(nblevels + 1 < c.lbd()) { // improve the LBD
                 if(c.lbd() <= lbLBDFrozenClause) {
@@ -719,7 +735,7 @@ void Solver::analyze(CRef confl, vec <Lit> &out_learnt, vec <Lit> &selectors, in
                 }
                 if(chanseokStrategy && nblevels <= coLBDBound) {
                     c.nolearnt();
-                    learnts.remove(confl);
+                    learnts.remove(confl);//从所有的学习子句中移除该子句
                     permanentLearnts.push(confl);
                     stats[nbPermanentLearnts]++;
 
@@ -947,10 +963,15 @@ void Solver::analyzeFinal(Lit p, vec <Lit> &out_conflict) {
     seen[var(p)] = 0;
 }
 
-
+/**
+ * @brief 将文字放入迹的末尾，对文字进行赋值，并存储导致文字取值的原因子句和所在的决策层次
+ * 
+ * @param p 
+ * @param from 
+ */
 void Solver::uncheckedEnqueue(Lit p, CRef from) {
     assert(value(p) == l_Undef);
-    assigns[var(p)] = lbool(!sign(p));
+    assigns[var(p)] = lbool(!sign(p));//正文字赋值真，负文字赋值假
     vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.push_(p);
 }
@@ -975,7 +996,7 @@ void Solver::bumpForceUNSAT(Lit q) {
 |________________________________________________________________________________________________@*/
 CRef Solver::propagate() {
     CRef confl = CRef_Undef;
-    int num_props = 0;
+    int num_props = 0;//记录单次单子句传播的次数
     watches.cleanAll();
     watchesBin.cleanAll();
     unaryWatches.cleanAll();
@@ -1005,7 +1026,7 @@ CRef Solver::propagate() {
         for(i = j = (Watcher *) ws, end = i + ws.size(); i != end;) {
             // Try to avoid inspecting the clause:
             Lit blocker = i->blocker;
-            if(value(blocker) == l_True) {
+            if(value(blocker) == l_True) {//子句已经满足的情况
                 *j++ = *i++;
                 continue;
             }
@@ -1023,8 +1044,7 @@ CRef Solver::propagate() {
             // If 0th watch is true, then clause is already satisfied.
             Lit first = c[0];
             Watcher w = Watcher(cr, first);
-            if(first != blocker && value(first) == l_True) {
-
+            if(first != blocker && value(first) == l_True) {//?
                 *j++ = w;
                 continue;
             }
@@ -1075,8 +1095,6 @@ CRef Solver::propagate() {
                     *j++ = *i++;
             } else {
                 uncheckedEnqueue(first, cr);
-
-
             }
             NextClause:;
         }
@@ -1085,7 +1103,6 @@ CRef Solver::propagate() {
         // unaryWatches "propagation"
         if(useUnaryWatched && confl == CRef_Undef) {
             confl = propagateUnaryWatches(p);
-
         }
 
     }
@@ -1430,7 +1447,7 @@ lbool Solver::search(int nof_conflicts) {
     vec <Lit> learnt_clause, selectors;
     unsigned int nblevels, szWithoutSelectors = 0;
     bool blocked = false;
-    bool aDecisionWasMade = false;
+    bool aDecisionWasMade = false;//标记当前的单子句传播是否由新决策变元引起的
 
     starts++;
 
@@ -1449,9 +1466,9 @@ lbool Solver::search(int nof_conflicts) {
 
     for(; ;) {
         if(decisionLevel() == 0) { // We import clauses FIXME: ensure that we will import clauses enventually (restart after some point)
-            parallelImportUnaryClauses();
+            parallelImportUnaryClauses();//空函数
 
-            if(parallelImportClauses())
+            if(parallelImportClauses())//parallelImportClauses函数返回false，该分支不执行
                 return l_False;
 
         }
@@ -1459,12 +1476,12 @@ lbool Solver::search(int nof_conflicts) {
 
         if(confl != CRef_Undef) {
             newDescent = false;
-            if(parallelJobIsFinished())
+            if(parallelJobIsFinished())//parallelJobIsFinished函数返回false，该分支不执行
                 return l_Undef;
 
             if(!aDecisionWasMade)
                 stats[noDecisionConflict]++;
-            aDecisionWasMade = false;
+            aDecisionWasMade = false;//产生了冲突，所以不是决策出了新的决策层
 
             stats[sumDecisionLevels] += decisionLevel();
             stats[sumTrail] += trail.size();
@@ -1481,7 +1498,7 @@ lbool Solver::search(int nof_conflicts) {
                        (int) stats[dec_vars] - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]), nClauses(), (int) stats[clauses_literals],
                        (int) stats[nbReduceDB], nLearnts(), (int) stats[nbDL2], (int) stats[nbRemovedClauses], progressEstimate() * 100);
             }
-            if(decisionLevel() == 0) {
+            if(decisionLevel() == 0) {//在第0层发生冲突，算例为UNSAT算例
                 return l_False;
 
             }

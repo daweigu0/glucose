@@ -64,31 +64,31 @@ namespace Glucose {
 // Core stats 
 
 enum CoreStats {
-  sumResSeen,
-  sumRes,
-  sumTrail,
-  nbPromoted,
-  originalClausesSeen,
-  sumDecisionLevels,
-  nbPermanentLearnts,
-  nbRemovedClauses,
-  nbRemovedUnaryWatchedClauses,
-  nbReducedClauses,
-  nbDL2,
-  nbBin,
-  nbUn,
-  nbReduceDB,
-  rnd_decisions,
-  nbstopsrestarts,
-  nbstopsrestartssame,
-  lastblockatrestart,
-  dec_vars,
-  clauses_literals,
-  learnts_literals,
-  max_literals,
-  tot_literals,
-  noDecisionConflict,
-  lcmtested,
+    sumResSeen,
+    sumRes,
+    sumTrail,
+    nbPromoted,
+    originalClausesSeen,
+    sumDecisionLevels,
+    nbPermanentLearnts,
+    nbRemovedClauses,
+    nbRemovedUnaryWatchedClauses,
+    nbReducedClauses,
+    nbDL2,
+    nbBin,
+    nbUn,
+    nbReduceDB,
+    rnd_decisions,
+    nbstopsrestarts,
+    nbstopsrestartssame,
+    lastblockatrestart,
+    dec_vars,
+    clauses_literals,
+    learnts_literals,
+    max_literals,
+    tot_literals,
+    noDecisionConflict,
+    lcmtested,
     lcmreduced,
     sumSizes
 } ;
@@ -198,7 +198,7 @@ public:
 
     // Mode of operation:
     //
-    int       verbosity;
+    int       verbosity;//控制求解器打印求解信息的详细程度，值的取值为[0,2]，取值越大越详细
     int       verbEveryConflicts;
     int       showModel;
 
@@ -212,9 +212,9 @@ public:
     int          firstReduceDB;
     int          incReduceDB;
     int          specialIncReduceDB;
-    unsigned int lbLBDFrozenClause;
-    bool         chanseokStrategy;
-    int          coLBDBound; // Keep all learnts with lbd<=coLBDBound
+    unsigned int lbLBDFrozenClause;//default value is 30
+    bool         chanseokStrategy;//default value is false
+    int          coLBDBound; //default value is 5. Keep all learnts with lbd<=coLBDBound
     // Constant for reducing clause
     int          lbSizeMinimizingClause;
     unsigned int lbLBDMinimizingClause;
@@ -222,13 +222,29 @@ public:
     bool LCMUpdateLBD; // Updates the LBD when shrinking/replacing a clause with the vivification
 
     // Constant for heuristic
-    double    var_decay;
-    double    max_var_decay;
+    double    var_decay;//default value is 0.8
+    double    max_var_decay;//default value is 0.95
     double    clause_decay;
     double    random_var_freq;
     double    random_seed;
     int       ccmin_mode;         // Controls conflict clause minimization (0=none, 1=basic, 2=deep).
-    int       phase_saving;       // Controls the level of phase saving (0=none, 1=limited, 2=full).
+    /**
+     * @brief Controls the level of phase saving (0=none, 1=limited, 2=full).
+     * @details 
+     * 1. phase_saving = 0: 完全禁用相位保存功能。
+     * 也就是说,每次做出变量决策时,都不会考虑该变量之前的赋值历史信息,
+     * 而是随机选择赋值。这种方式可能会导致更多的回溯和重复计算。
+     * 
+     * 2. phase_saving = 1: 有限的相位保存。
+     * 这种模式下,Glucose 会记录每个变量的上次赋值,并在做决策时优先选择与上次相同的赋值。
+     * 但是,当发生冲突回溯时,Glucose 会重置该变量的相位信息,以避免陷入局部最优。
+     * 这种方式在某些情况下可以提高效率,但并不总是最佳选择。
+     * 
+     * 3. phase_saving = 2: 完全相位保存。
+     * 这是 Glucose 的默认设置。在这种模式下,Glucose 会完全保留每个变量的相位信息,即使在冲突回溯后也不会重置。
+     * 这种方式可以更好地利用历史信息,在许多情况下能够显著提高 SAT 求解的效率。
+     */
+    int       phase_saving;       
     bool      rnd_pol;            // Use random polarities for branching heuristics.
     bool      rnd_init_act;       // Initialize variable activities with a small random value.
     bool      randomizeFirstDescent; // the first decisions (until first cnflict) are made randomly
@@ -251,7 +267,7 @@ public:
     // Save memory
     uint32_t panicModeLastRemoved, panicModeLastRemovedShared;
 
-    bool useUnaryWatched;            // Enable unary watched literals
+    bool useUnaryWatched;            // Enable unary watched literals and default value is false
     bool promoteOneWatchedClause;    // One watched clauses are promotted to two watched clauses if found empty
 
     // Functions useful for multithread solving
@@ -271,7 +287,16 @@ public:
     // Statistics
     vec<uint64_t> stats;
 
-    // Important stats completely related to search. Keep here
+    /**
+     * @brief Important stats completely related to search. Keep here
+     * @details
+     * solves
+     * starts
+     * decisions
+     * propagations 记录总单子句传播的总次数
+     * conflicts 冲突的总次数
+     * conflictsRestarts
+     */
     uint64_t solves,starts,decisions,propagations,conflicts,conflictsRestarts;
 
 protected:
@@ -282,7 +307,7 @@ protected:
     bool glureduce;
     uint32_t restart_inc;
     bool  luby_restart;
-    bool adaptStrategies;
+    bool adaptStrategies;//default value is false
     uint32_t luby_restart_factor;
     bool randomize_on_restarts, fixed_randomize_on_restarts, newDescent;
     uint32_t randomDescentAssignments;
@@ -563,6 +588,10 @@ inline bool     Solver::addClause       (Lit p, Lit q, Lit r)   { add_tmp.clear(
      ||
      (value(c[1]) == l_True && reason(var(c[1])) != CRef_Undef && ca.lea(reason(var(c[1]))) == &c);
  }
+ /**
+  * @brief 存储新的决策层在迹中开始的下标
+  * 
+  */
 inline void     Solver::newDecisionLevel()                      { trail_lim.push(trail.size()); }
 /**
  * @brief 返回当前是第几决策层
@@ -573,7 +602,8 @@ inline int      Solver::decisionLevel ()      const   { return trail_lim.size();
 inline uint32_t Solver::abstractLevel (Var x) const   { return 1 << (level(x) & 31); }
 inline lbool    Solver::value         (Var x) const   { return assigns[x]; }
 /**
- * @brief 判断变元当前的赋值与文字的极性是否相同，相同返回l_True，不同返回l_False;
+ * @brief 判断变元当前的赋值与文字的极性是否相同，相同返回l_True，不同返回l_False；如果变元未赋值返回值与l_Undef相等。
+ * @details
  * 如果当前变元未赋值，返回l_bool(uint8_t(3))或者l_bool(uint8_t(2))
  * 注意：
  * l_bool(uint8_t(3)) == l_Undef, l_bool(uint8_t(2)) == l_Undef的结果都是true

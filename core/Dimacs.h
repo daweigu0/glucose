@@ -39,8 +39,7 @@ static void readClause(B& in, Solver& S, vec<Lit>& lits) {
         parsed_lit = parseInt(in);
         if (parsed_lit == 0) break;//cnf中的子句以0结尾
         var = abs(parsed_lit)-1;
-        while (var >= S.nVars()) 
-            S.newVar();
+        while (var >= S.nVars()) S.newVar();
         lits.push( (parsed_lit > 0) ? mkLit(var) : ~mkLit(var) );
     }
 }

@@ -211,7 +211,7 @@ int main(int argc, char** argv)
             printf("c |                                                                                                       |\n"); }
 
         FILE* res = (argc >= 3) ? fopen(argv[argc-1], "wb") : NULL;
-        parse_DIMACS(in, S);
+        parse_DIMACS(in, S);//解析cnf文件
         gzclose(in);
 
        if (S.verbosity > 0){

@@ -62,6 +62,11 @@ public:
 
     // Size operations:
     int      size     (void) const     { return sz; }
+    /**
+     * @brief 删除容器中末尾的nelems个元素
+     * 
+     * @param nelems 
+     */
     void     shrink   (int nelems)     { assert(nelems <= sz); for (int i = 0; i < nelems; i++) sz--, data[sz].~T(); }
     void     shrink_  (int nelems)     { assert(nelems <= sz); sz -= nelems; }
     int      capacity (void) const     { return cap; }
@@ -96,6 +101,11 @@ public:
     // even, but INT_MAX is odd.
 
     const T& last  (void) const        { return data[sz-1]; }
+    /**
+     * @brief 返回容器中最后一个位置的元素
+     * 
+     * @return T& 
+     */
     T&       last  (void)              { return data[sz-1]; }
 
     // Vector interface:

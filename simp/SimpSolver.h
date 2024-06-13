@@ -135,7 +135,7 @@ class SimpSolver : public Solver {
     int     merges;
     int     asymm_lits;
     int     eliminated_vars;
-    bool                use_simplification;
+    bool    use_simplification;//default value is false
 
  protected:
 
