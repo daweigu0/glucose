@@ -120,7 +120,7 @@ class SimpSolver : public Solver {
 
     // Mode of operation:
     //
-    int     parsing;
+    int     parsing;           
     int     grow;              // Allow a variable elimination step to grow by a number of clauses (default to zero).
     int     clause_lim;        // Variables are not eliminated if it produces a resolvent with a length above this limit.
                                // -1 means no limit.
@@ -135,7 +135,7 @@ class SimpSolver : public Solver {
     int     merges;
     int     asymm_lits;
     int     eliminated_vars;
-    bool    use_simplification;//default value is false
+    bool    use_simplification;//default value is true
 
  protected:
 

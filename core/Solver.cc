@@ -689,10 +689,10 @@ Lit Solver::pickBranchLit() {
  * |________________________________________________________________________________________________
  * @param confl 冲突子句
  * @param out_learnt 冲突分析到的学习子句
- * @param selectors 
+ * @param selectors 非INCREMENTAL模式下为空
  * @param out_btlevel 需要回溯到的决策层数
  * @param lbd 学习子句的lbd值
- * @param szWithoutSelectors 
+ * @param szWithoutSelectors 非INCREMENTAL模式下是out_learnt学习子句的长度
  */
 void Solver::analyze(CRef confl, vec <Lit> &out_learnt, vec <Lit> &selectors, int &out_btlevel, unsigned int &lbd, unsigned int &szWithoutSelectors) {
     int pathC = 0;
@@ -736,9 +736,8 @@ void Solver::analyze(CRef confl, vec <Lit> &out_learnt, vec <Lit> &selectors, in
                 if(chanseokStrategy && nblevels <= coLBDBound) {
                     c.nolearnt();
                     learnts.remove(confl);//从所有的学习子句中移除该子句
-                    permanentLearnts.push(confl);
+                    permanentLearnts.push(confl);//将该子句重新放到持久存储的permanentLearnts中
                     stats[nbPermanentLearnts]++;
-
                 } else {
                     c.setLBD(nblevels); // Update it
                 }
@@ -750,9 +749,9 @@ void Solver::analyze(CRef confl, vec <Lit> &out_learnt, vec <Lit> &selectors, in
             Lit q = c[j];
 
             if(!seen[var(q)]) {
-                if(level(var(q)) == 0) {
+                if(level(var(q)) == 0) {//第0层的变元已经确定了其值，不会成为学习子句中的文字，所以不用进行考虑
                 } else { // Here, the old case
-                    if(!isSelector(var(q)))
+                    if(!isSelector(var(q)))//非incremental模式该分支永真
                         varBumpActivity(var(q));
 
                     // This variable was responsible for a conflict,
@@ -764,9 +763,9 @@ void Solver::analyze(CRef confl, vec <Lit> &out_learnt, vec <Lit> &selectors, in
                         pathC++;
                         // UPDATEVARACTIVITY trick (see competition'09 companion paper)
                         if(!isSelector(var(q)) && (reason(var(q)) != CRef_Undef) && ca[reason(var(q))].learnt())
-                            lastDecisionLevel.push(q);
+                            lastDecisionLevel.push(q);//?
                     } else {
-                        if(isSelector(var(q))) {
+                        if(isSelector(var(q))) {//非incremental模式下该分支不执行
                             assert(value(q) == l_False);
                             selectors.push(q);
                         } else
@@ -791,11 +790,11 @@ void Solver::analyze(CRef confl, vec <Lit> &out_learnt, vec <Lit> &selectors, in
     //
     int i, j;
 
-    for(int i = 0; i < selectors.size(); i++)
+    for(int i = 0; i < selectors.size(); i++)//非incremental模式下selectors为空
         out_learnt.push(selectors[i]);
 
     out_learnt.copyTo(analyze_toclear);
-    if(ccmin_mode == 2) {
+    if(ccmin_mode == 2) {//?
         uint32_t abstract_level = 0;
         for(i = 1; i < out_learnt.size(); i++)
             abstract_level |= abstractLevel(var(out_learnt[i])); // (maintain an abstraction of levels involved in conflict)
@@ -834,7 +833,7 @@ void Solver::analyze(CRef confl, vec <Lit> &out_learnt, vec <Lit> &selectors, in
       Then, we reduce clauses with small LBD.
       Otherwise, this can be useless
      */
-    if(!incremental && out_learnt.size() <= lbSizeMinimizingClause) {
+    if(!incremental && out_learnt.size() <= lbSizeMinimizingClause) {//?
         minimisationWithBinaryResolution(out_learnt);
     }
     // Find correct backtrack level:
@@ -867,7 +866,7 @@ void Solver::analyze(CRef confl, vec <Lit> &out_learnt, vec <Lit> &selectors, in
     // Compute LBD
     lbd = computeLBD(out_learnt, out_learnt.size() - selectors.size());
 
-    // UPDATEVARACTIVITY trick (see competition'09 companion paper)
+    // UPDATEVARACTIVITY trick (see competition'09 companion paper) ?
     if(lastDecisionLevel.size() > 0) {
         for(int i = 0; i < lastDecisionLevel.size(); i++) {
             if(ca[reason(var(lastDecisionLevel[i]))].lbd() < lbd)
@@ -976,7 +975,11 @@ void Solver::uncheckedEnqueue(Lit p, CRef from) {
     trail.push_(p);
 }
 
-
+/**
+ * @brief 正文字对应位置的forceUNSAT会被赋值为1，负文字会被赋值为-1
+ * 
+ * @param q 
+ */
 void Solver::bumpForceUNSAT(Lit q) {
     forceUNSAT[var(q)] = sign(q) ? -1 : +1;
     return;
@@ -1290,14 +1293,20 @@ void Solver::rebuildOrderHeap() {
 }
 
 
-/*_________________________________________________________________________________________________
-|
-|  simplify : [void]  ->  [bool]
-|
-|  Description:
-|    Simplify the clause database according to the current top-level assigment. Currently, the only
-|    thing done here is the removal of satisfied clauses, but more things can be put here.
-|________________________________________________________________________________________________@*/
+/**
+ * @brief 当决策层处于第0层时，调用该函数可以移除算例中所有已经满足的子句
+ * @details
+ * |_________________________________________________________________________________________________
+ * |
+ * |  simplify : [void]  ->  [bool]
+ * |
+ * |  Description:
+ * |    Simplify the clause database according to the current top-level assigment. Currently, the only
+ * |    thing done here is the removal of satisfied clauses, but more things can be put here.
+ * |________________________________________________________________________________________________
+ * @return true 正常移除所有已经满足的子句
+ * @return false 在0层产生冲突，算例不满足，为UNSAT 
+ */
 bool Solver::simplify() {
     assert(decisionLevel() == 0);
 
@@ -1540,10 +1549,10 @@ lbool Solver::search(int nof_conflicts) {
             if(learnt_clause.size() == 1) {
                 uncheckedEnqueue(learnt_clause[0]);
                 stats[nbUn]++;
-                parallelExportUnaryClause(learnt_clause[0]);
+                parallelExportUnaryClause(learnt_clause[0]);//空函数
             } else {
                 CRef cr;
-                if(chanseokStrategy && nblevels <= coLBDBound) {
+                if(chanseokStrategy && nblevels <= static_cast<unsigned int>(coLBDBound)) {
                     cr = ca.alloc(learnt_clause, false);
                     permanentLearnts.push(cr);
                     stats[nbPermanentLearnts]++;
@@ -1563,7 +1572,7 @@ lbool Solver::search(int nof_conflicts) {
                 lastLearntClause = cr; // Use in multithread (to hard to put inside ParallelSolver)
 
 
-                parallelExportClauseDuringSearch(ca[cr]);
+                parallelExportClauseDuringSearch(ca[cr]);//空函数
                 uncheckedEnqueue(learnt_clause[0], cr);
 
             }

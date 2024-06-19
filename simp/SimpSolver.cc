@@ -674,7 +674,14 @@ void SimpSolver::extendModel()
     }
 }
 
-
+/**
+ * @brief 该函数默认只执行simplify函数就返回，
+ * 需要往下执行需设置use_simplification的值为true
+ * 
+ * @param turn_off_elim 
+ * @return true 
+ * @return false 
+ */
 bool SimpSolver::eliminate(bool turn_off_elim)
 {
     if (!simplify()) {

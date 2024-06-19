@@ -70,7 +70,7 @@ enum CoreStats {
     nbPromoted,
     originalClausesSeen,
     sumDecisionLevels,
-    nbPermanentLearnts,
+    nbPermanentLearnts,//固化的学习子句的数量，固化的学习子句是指搜索过程中不会考虑进行删除操作的学习子句
     nbRemovedClauses,
     nbRemovedUnaryWatchedClauses,
     nbReducedClauses,
@@ -198,7 +198,7 @@ public:
 
     // Mode of operation:
     //
-    int       verbosity;//控制求解器打印求解信息的详细程度，值的取值为[0,2]，取值越大越详细
+    int       verbosity;//default value is 1. 控制求解器打印求解信息的详细程度，值的取值为[0,2]，取值越大越详细
     int       verbEveryConflicts;
     int       showModel;
 
@@ -216,18 +216,18 @@ public:
     bool         chanseokStrategy;//default value is false
     int          coLBDBound; //default value is 5. Keep all learnts with lbd<=coLBDBound
     // Constant for reducing clause
-    int          lbSizeMinimizingClause;
+    int          lbSizeMinimizingClause;//default value is 30.
     unsigned int lbLBDMinimizingClause;
-    bool useLCM; // See ijcai17 (Chu Min Li paper, related to vivif).
+    bool useLCM; // defalut value is true. See ijcai17 (Chu Min Li paper, related to vivif).
     bool LCMUpdateLBD; // Updates the LBD when shrinking/replacing a clause with the vivification
 
     // Constant for heuristic
     double    var_decay;//default value is 0.8
     double    max_var_decay;//default value is 0.95
-    double    clause_decay;
+    double    clause_decay;//default value is 0.999
     double    random_var_freq;
     double    random_seed;
-    int       ccmin_mode;         // Controls conflict clause minimization (0=none, 1=basic, 2=deep).
+    int       ccmin_mode;//defalut value is 2. Controls conflict clause minimization (0=none, 1=basic, 2=deep).
     /**
      * @brief Controls the level of phase saving (0=none, 1=limited, 2=full).
      * @details 
@@ -256,7 +256,7 @@ public:
     // Certified UNSAT ( Thanks to Marijn Heule
     // New in 2016 : proof in DRAT format, possibility to use binary output
     FILE*               certifiedOutput;
-    bool                certifiedUNSAT;
+    bool                certifiedUNSAT;//default value is false
     bool                vbyte;
 
     void write_char (unsigned char c);
@@ -304,11 +304,11 @@ protected:
     long curRestart;
 
     // Alpha variables
-    bool glureduce;
+    bool glureduce;//default value is true
     uint32_t restart_inc;
-    bool  luby_restart;
-    bool adaptStrategies;//default value is false
-    uint32_t luby_restart_factor;
+    bool  luby_restart;//defalut is false
+    bool adaptStrategies;//default value is true
+    uint32_t luby_restart_factor;//default value is 100
     bool randomize_on_restarts, fixed_randomize_on_restarts, newDescent;
     uint32_t randomDescentAssignments;
     bool forceUnsatOnNewDescent;
@@ -432,7 +432,7 @@ protected:
     bool                asynch_interrupt;
 
     // Variables added for incremental mode
-    int incremental; // Use incremental SAT Solver
+    int incremental; //default value is false. Use incremental SAT Solver
     int nbVarsInitialFormula; // nb VAR in formula without assumptions (incremental SAT)
     double totalTime4Sat,totalTime4Unsat;
     int nbSatCalls,nbUnsatCalls;
@@ -491,6 +491,13 @@ protected:
     int      level            (Var x) const;
     double   progressEstimate ()      const; // DELETE THIS ?? IT'S NOT VERY USEFUL ...
     bool     withinBudget     ()      const;
+    /**
+     * @brief 非incremental模式，该函数返回false
+     * 
+     * @param v 
+     * @return true 
+     * @return false 
+     */
     inline bool isSelector(Var v) {return (incremental && v>nbVarsInitialFormula);}
 
     // Static helpers:
@@ -527,7 +534,7 @@ public:
 
     // in redundant
     bool removed(CRef cr);
-    int performLCM;
+    int performLCM;//defalut value is 1
 
     //// test
     vec<int> valueDup;
@@ -561,6 +568,11 @@ inline void Solver::varBumpActivity(Var v, double inc) {
         order_heap.decrease(v); }
 
 inline void Solver::claDecayActivity() { cla_inc *= (1 / clause_decay); }
+/**
+ * @brief 跟新子句的activity值
+ * 
+ * @param c 
+ */
 inline void Solver::claBumpActivity (Clause& c) {
         if ( (c.activity() += cla_inc) > 1e20 ) {
             // Rescale:
@@ -661,10 +673,14 @@ inline void     Solver::toDimacs     (const char* file, Lit p, Lit q){ vec<Lit> 
 inline void     Solver::toDimacs     (const char* file, Lit p, Lit q, Lit r){ vec<Lit> as; as.push(p); as.push(q); as.push(r); toDimacs(file, as); }
 
 
-/************************************************************
- * Compute LBD functions
- *************************************************************/
-
+/**
+ * @brief Compute LBD functions. 
+ * 
+ * @tparam T 
+ * @param lits 
+ * @param end 非INCREMENTAL模式下，end参数可忽略，函数体没有使用
+ * @return unsigned int 
+ */
 template <typename T>inline unsigned int Solver::computeLBD(const T &lits, int end) {
     int nblevels = 0;
     MYFLAG++;
